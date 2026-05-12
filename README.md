@@ -38,3 +38,8 @@ This C program is a file splitter utility. It takes a single file and divides it
 
 5. Cleanup
 Finally, the program releases the memory it borrowed using free(ptr) and returns 0, indicating a successful execution.
+
+# Made By:
+- Hisham Aljughayman
+- Osama Saleh Alanzi
+- Alwaleed Alghamdi
