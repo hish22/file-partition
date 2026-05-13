@@ -10,7 +10,7 @@ struct pmd{
     int parts_bound;
     int block_size;
     int extra_remain;
-    int file_size;
+    long int file_size;
 };
 
 
@@ -28,7 +28,7 @@ void generate_pmd(char filename[256],int parts_bound,int block_size,
     new_pmd.extra_remain = extra_remain;
     new_pmd.file_size = file_size;
 
-    printf("filename: %s \n parts_bound: %x \n block_size: %x\n file_size: %x \n",
+    printf("filename: %s \n parts_bound: %x \n block_size: %x\n file_size: %d \n",
         filename,parts_bound,block_size,file_size);
 
     // array of chars
@@ -98,46 +98,105 @@ void partition(char *_filename,int parts_number) {
     free(ptr);
 }
 
-int main(int argv, char **argc) {
+/* reconstruct file from partitioned files */
+void merge(char *filename, int rotation) {
+    
+    // Vaildate metadata file type
+    char ext[4];
+    int ext_length = strlen(filename);
+    sprintf(ext,"%s",&filename[ext_length - 3]);
 
-    // Input from user
-    if (argv != 4) {
-        printf("Please inpout 3 arguments (usage: %s flag filename blockpart)\n",argc[0]);
+    if(strcmp(ext,"pmd")) {
+        printf("Failed to read pmd file!\n");
         exit(1);
     }
+
+    // allocate memory for pmd file
+    void *ptr = malloc(sizeof(struct pmd));
+    struct pmd *file_pmd_ptr = (struct pmd*) ptr;
+
+    // read metadata file into memory
+    FILE *fh = fopen(filename,"rb");
+    if(fh != NULL) {
+        fread(ptr,sizeof(struct pmd),1,fh);
+        fclose(fh);
+    }
+
+    // Vaildate if rotation file is in the limit bound
+    if(rotation >= file_pmd_ptr->parts_bound) {
+        printf("Rotation value must be in the limit bound\n");
+        free(ptr);
+        exit(1);
+    }
+
+    // allocate memory based on file size
+    void *fptr = malloc(file_pmd_ptr->file_size);
+    char *ffptr = (char*) fptr;
+
+    // Read from disk to memory
+    for(int p=0; p < file_pmd_ptr->parts_bound; p++) {
+        char partfilename[1024];
+        snprintf(partfilename,sizeof(partfilename),"%s.%d",file_pmd_ptr->filename,rotation);
+        FILE *pfh = fopen(partfilename,"rb");
+        if(pfh != NULL) {
+            if (p+1 == file_pmd_ptr->parts_bound) {
+                fread(ffptr, file_pmd_ptr->block_size+file_pmd_ptr->extra_remain, 1, pfh);
+                fclose(pfh);
+            } else {
+                fread(ffptr, file_pmd_ptr->block_size, 1, pfh);
+                fclose(pfh);
+            }
+        }
+        ffptr += file_pmd_ptr->block_size;
+        if(++rotation == file_pmd_ptr->parts_bound) {
+            rotation = 0;
+        }
+    }
+
+
+    // Create File from memory
+    FILE *fh_c = fopen(file_pmd_ptr->filename,"wb");
+    if (fh_c != NULL) {
+        fwrite(fptr,file_pmd_ptr->file_size,1,fh_c);
+        fclose(fh_c);
+    }
+
+    free(fptr);
+    free(ptr);
+}
+
+int main(int argv, char **argc) {
     
     if (argc[1][0] == '-') {
-        switch (argc[1][1])
-        {
+        switch (argc[1][1]) {
         case 'p':
+            if (argv != 4) {
+                printf("Please inpout 3 arguments (usage: %s -p filename blockpart)\n",argc[0]);
+                exit(1);
+            }
             partition(argc[2],atoi(argc[3]));
             break;
         
         case 'm':
-        ;
+            if (argv == 3) {
+                merge(argc[2],0);
+            } else if (argv == 5 && (argc[3][0] == '-' && argc[3][1] == 'r')) {
+                merge(argc[2],atoi(argc[4]));
+            } else {
+                printf("Please input 5 arguments (usage: %s -m filename -r rotation rotation_filename) or\n",argc[0]);
+                printf("Please input 2 arguments (usage: %s -m filename)\n",argc[0]);
+                exit(1);
+            }
+            break;
         
         default:
             printf("Failed to understand the flag!\n");
             break;
         }
+    } else {
+        printf("Please use a flag! (usage: -p or -m)");
+        exit(1);
     }
-
-    // Create File again
-    // FILE *fh_c = fopen("sigmoid_copy.png","wb");
-    // for (int j=0; j < block_size; j++) {
-    //     if (fh != NULL) {
-    //         if (j+1 == block_size) {
-    //             fwrite(fptr, new_file_size+r, 1, fh);
-    //             fclose(fh);
-    //         } else {
-    //             fwrite(fptr, new_file_size, 1, fh);
-    //             fclose(fh);
-    //         }
-    //     }
-    //     fptr += new_file_size;
-    // }
-
-    // fclose(fh_c);
 
     return 0;
 
