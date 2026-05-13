@@ -2,8 +2,6 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <stdlib.h>
-#include <math.h>
-
 
 int main(int argv, char **argc) {
 
