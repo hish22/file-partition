@@ -20,7 +20,10 @@ int main(int argv, char **argc) {
 
     // file metadata
     struct stat st;
-    stat(argc[1],&st);
+    if (stat(argc[1],&st) == -1) {
+        printf("File doesn't exist!\n");
+        exit(1);
+    }
 
     // 1000000 = 1 MB
     if(st.st_size > 1000000) {
@@ -44,7 +47,7 @@ int main(int argv, char **argc) {
 
     // Create parts into different files
     for(int i=0; i < block_size; i++) {
-        char filename[1024]; 
+        char filename[1024];
         snprintf(filename, sizeof(filename), "%s.%d", argc[1], i);
         FILE *fh = fopen(filename,"wb");
         if (fh != NULL) {
