@@ -47,7 +47,7 @@ int main(int argv, char **argc) {
     // Create parts into different files
     for(int i=0; i < block_size; i++) {
         char filename[1024]; 
-        snprintf(filename, sizeof(filename), "%s%d", "sigmoid.png.", i);
+        snprintf(filename, sizeof(filename), "%s.%d", argc[1], i);
         FILE *fh = fopen(filename,"wb");
         if (fh != NULL) {
             if (i+1 == block_size) {
@@ -65,7 +65,13 @@ int main(int argv, char **argc) {
     // FILE *fh_c = fopen("sigmoid_copy.png","wb");
     // for (int j=0; j < block_size; j++) {
     //     if (fh != NULL) {
-    //         fwrite(fptr, new_file_size, 1, fh_c);
+    //         if (j+1 == block_size) {
+    //             fwrite(fptr, new_file_size+r, 1, fh);
+    //             fclose(fh);
+    //         } else {
+    //             fwrite(fptr, new_file_size, 1, fh);
+    //             fclose(fh);
+    //         }
     //     }
     //     fptr += new_file_size;
     // }
